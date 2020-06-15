@@ -1,0 +1,38 @@
+version: '3.8'
+services:  
+ flask:
+    container_name: flask_app
+    build: ./
+    restart: always
+    volumes:
+      - ./app/:/usr/src/app/
+      # First part - where pictures will be saved
+      - ./Pictures:/usr/src/app/Pictures
+    ports:
+      - 5000:5000
+    depends_on:
+      - db
+ tests:
+   container_name: tests
+   build: ./
+   volumes:
+     - ./app/:/usr/src/app/
+   depends_on:
+     - flask
+   command: python -m pytest /usr/src/app/tests.py
+
+ db:
+  image: postgres:latest
+  container_name: postgreSQL
+  volumes:
+   - postgres_data:/var/lib/postgresql/data/
+   - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+  ports:
+      - 5432:5432
+  environment:
+   - POSTGRES_USER=postgres
+   - POSTGRES_PASSWORD=password
+   - POSTGRES_DB=postgres 
+
+volumes:
+ postgres_data:

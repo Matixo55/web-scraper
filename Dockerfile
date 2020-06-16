@@ -7,8 +7,6 @@ COPY ./requirements.txt /usr/src/app/requirements.txt
 
 WORKDIR /usr/src/app
 
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
 ENV PATH="/usr/src/app:/usr/local/lib/python3.8:${PATH}"
 
 RUN pip install --upgrade pip

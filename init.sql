@@ -1,11 +1,10 @@
 GRANT ALL PRIVILEGES ON DATABASE postgres TO postgres;
+CREATE SEQUENCE id_seq;
 CREATE TABLE IF NOT EXISTS Requests
 (
-id integer,
-url text,
-status text,
-website_text text,
-pictures text[]
+id INT NOT NULL DEFAULT NEXTVAL('id_seq'),
+url TEXT NOT NULL,
+status TEXT,
+website_text TEXT,
+pictures TEXT[]
 );
-ALTER TABLE Requests
-ADD PRIMARY KEY (id);

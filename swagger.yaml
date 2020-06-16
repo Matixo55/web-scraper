@@ -1,0 +1,133 @@
+swagger: "2.0"
+info:
+  version: "1.0.0"
+  title: "Flask web-scraper"
+host: "localhost:5000"
+tags:
+- name: "main"
+  description: "Check if app is running"
+- name: "get"
+  description: "Request resources fom website"
+- name: "download"
+  description: "Download requested resources"
+paths:
+  /:
+    get:
+      tags:
+      - "main"
+      summary: "Check is server is running"
+      responses:
+        "200":
+          description: "Server is online"
+  /get/text:
+    post:
+      tags:
+      - "get"
+      summary: "Create text reqest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Website that you want to get text from"
+        required: true
+        schema:
+          $ref: "#/definitions/GetResources"
+      responses:
+        "201":
+          description:
+            "URL accepted"
+          schema:
+            $ref: "#/definitions/RequestAccepted"
+        "400":
+          description:
+            "Invalid URL"
+  /get/images:
+    post:
+      tags:
+      - "get"
+      summary: "Create images reqest"
+      parameters:
+      - in: "body"
+        name: "body"
+        description: "Website that you want to get images from"
+        required: true
+        schema:
+          $ref: "#/definitions/GetResources"
+      responses:
+        "201":
+          description:
+            "URL accepted"
+          schema:
+            $ref: "#/definitions/RequestAccepted"
+        "400":
+          description:
+            "Invalid URL"
+  /download/text/{requestID}:
+    get:
+      tags:
+      - "download"
+      summary: "Download text"
+      parameters:
+      - name: "requestID"
+        in: "path"
+        description: "ID request"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "403":
+          description: "Request is in progress, try later"
+        "404":
+          description: "Invalid requestID"
+        "200":
+          description: "Downloading to `app/Text/{requestID}.txt`"
+          schema:
+            $ref: "#/definitions/DownloadText"
+  /download/images/{requestID}:
+    get:
+      tags:
+      - "download"
+      summary: "Download images"
+      parameters:
+      - name: "requestID"
+        in: "path"
+        description: "ID request"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "403":
+          description: "Request is in progress, try later"
+        "404":
+          description: "Invalid requestID"
+        "200":
+          description: "Downloading to `app/Images/{requestID}.{extension}`"
+          schema:
+            $ref: "#/definitions/DownloadImages"
+
+definitions:
+  GetResources:
+    type: "object"
+    properties:
+      url:
+        type: "string"
+  RequestAccepted:
+    type: "object"
+    properties:
+      id:
+        type: "integer"
+        format: "int64"
+  DownloadText:
+    type: "object"
+    properties:
+      file:
+        type: "string"
+  DownloadImages:
+    type: "object"
+    properties:
+      files:
+        type: "array"
+        items: 
+          type: "string"
+externalDocs:
+  description: "GitHub"
+  url: "https://github.com/Matixo55/web-scraper"

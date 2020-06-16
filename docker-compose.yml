@@ -7,11 +7,14 @@ services:
     volumes:
       - ./app/:/usr/src/app/
       # First part - where pictures will be saved
-      - ./Pictures:/usr/src/app/Pictures
+      - ./app/Images:/usr/src/app/Images
+      - # First part - where text will be saved
+      - ./app/Text:/usr/src/app/Text
     ports:
       - 5000:5000
     depends_on:
       - db
+
  tests:
    container_name: tests
    build: ./
@@ -30,9 +33,9 @@ services:
   ports:
       - 5432:5432
   environment:
-   - POSTGRES_USER=postgres
-   - POSTGRES_PASSWORD=password
-   - POSTGRES_DB=postgres 
+    - POSTGRES_USER=postgres
+    - POSTGRES_PASSWORD=password
+    - POSTGRES_DB=postgres
 
 volumes:
  postgres_data:

@@ -6,47 +6,36 @@ from bs4 import BeautifulSoup
 from celery import Celery
 from flask import Flask, jsonify
 from flask import request as flask_request
-from sqlalchemy import create_engine, func, MetaData
+from sqlalchemy import create_engine, func
 from sqlalchemy.orm import sessionmaker, exc
 
-Requests = importlib.import_module(".Request", "models").Requests
+Requests = importlib.import_module(".", "models").Requests
+Status = importlib.import_module(".", "models").Status
 DATABASE_URI = importlib.import_module(".", "settings").DATABASE_URI
 
 
 app = Flask(__name__)
-app.config['CELERY_BROKER_URL'] = 'redis://localhost:6379/0'
 app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
 app.config['DEBUG'] = True
-celery = Celery(app.name, broker=app.config['CELERY_BROKER_URL'])
+celery = Celery(app.name, broker='redis://localhost:6379/0')
 
-meta = MetaData()
 
-try:
-    engine = create_engine(DATABASE_URI)
-    Session = sessionmaker(bind=engine)
-    meta.create_all(engine)
-except OperationalError:
-    raise Exception("Couldn't connect to database or it wasn't found")
-
-__session = Session()
-found_id = __session.query(func.max(Requests.id))
-found_id = found_id.one()[0]
-if found_id is not None:
-    max_id = found_id + 1
-else:
-    max_id = 0
+engine = create_engine(DATABASE_URI)
+Session = sessionmaker(bind=engine)
 
 
 def create_request_object():
-    global max_id
     body = flask_request.get_json(force=True)
     url = body["url"]
     if is_url_valid(url):
         sess = Session()
-        sess.add(Requests(id=max_id, url=url, status="in-progress", website_text="", pictures=[]))
+        __request = Requests(url=url, status=Status.preparing, website_text="", pictures=[])
+        sess.add(__request)
+        sess.flush()
+        print(__request.id)
+        id = __request.id
         sess.commit()
-        max_id += 1
-        return url, max_id-1, True
+        return url, id, True
     else:
         return url, None, False
 
@@ -55,7 +44,7 @@ def finish_pictures_request(urls, target_id):
     session = Session()
     session.query(Requests) \
         .filter(Requests.id == target_id) \
-        .update({Requests.pictures: urls, Requests.status: "Done"})
+        .update({Requests.pictures: urls, Requests.status: Status.done})
     session.commit()
 
 
@@ -63,7 +52,7 @@ def finish_text_request(text, target_id):
     session = Session()
     session.query(Requests) \
         .filter(Requests.id == target_id) \
-        .update({Requests.website_text: text, Requests.status: "Done"})
+        .update({Requests.website_text: text, Requests.status: Status.done})
     session.commit()
 
 
@@ -80,18 +69,18 @@ def is_url_valid(url):
 
 @app.route("/", methods=["GET"])
 def menu():
-    return "<h1>Server is online</h1>"
+    return "<h1>Server is online</h1>", 200
 
 
-@app.route("/download-pictures/<id>", methods=["GET"])
+@app.route("/download/images/<id>", methods=["GET"])
 def download_pictures(id):
     session = Session()
     try:
         object = session.query(Requests) \
             .filter(Requests.id == id).one()
     except exc.NoResultFound:
-        return jsonify({"error": "Incorrect ID"}), 404
-    if object.status == "Done":
+        return 404
+    if object.status == Status.done:
         number = 0
         urls = []
         for url in object.pictures:
@@ -101,51 +90,53 @@ def download_pictures(id):
                 extensions = ["png", "jpg", "jpeg", "raw", "gif"]
                 if extension.lower() not in extensions:
                     extension = "png"
-                name = f"./Pictures/image{object.id}-{number}.{extension}"
-                file = open(name, "wb")
-                file.write(response.content)
-                file.close()
+                name = f"./Images/{object.id}-{number}.{extension}"
+                with open(name, "wb") as file:
+                    file.write(response.content)
                 number += 1
                 urls.append(name)
             except req.exceptions.ConnectionError:
                 urls.append(f"Unable to download {url}")
-        return jsonify({"pictures": urls})
+        return jsonify({"files": urls}), 200
     else:
-        return jsonify({"status": "in-progress"})
+        return 403
 
 
-@app.route("/download-text/<id>", methods=["GET"])
+@app.route("/download/text/<id>", methods=["GET"])
 def download_text(id):
     session = Session()
     try:
         object = session.query(Requests) \
             .filter(Requests.id == id).one()
     except exc.NoResultFound:
-        return jsonify({"error": "Incorrect ID"}), 404
-    if object.status == "Done":
-        return object.website_text
+        return 404
+    if object.status == Status.done:
+        name = f"./Text/{object.id}.txt"
+        with open(name, "wb") as file:
+            file.write(object.website_text)
+        return jsonify({"file": name}), 200
     else:
-        return jsonify({"status": "in-progress"})
+        return 403
 
 
-@app.route("/get-pictures/", methods=["POST"])
+@app.route("/get/images/", methods=["POST"])
 def create_pictures_request():
     url, id, accepted = create_request_object()
     if accepted:
         get_pictures(url, id)
         return jsonify({"id": id}), 201
     else:
-        return jsonify({"error": "Invalid url"}), 404
+        return 400
 
 
-@app.route("/get-text/", methods=["POST"])
+@app.route("/get/text/", methods=["POST"])
 def create_text_request():
     url, id, accepted = create_request_object()
     if accepted:
         get_text(url, id)
         return jsonify({"id": id}), 201
     else:
-        return jsonify({"error": "Invalid url"}), 404
+        return 400
 
 
 @celery.task

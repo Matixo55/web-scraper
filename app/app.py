@@ -79,7 +79,7 @@ def download_pictures(id):
         object = session.query(Requests) \
             .filter(Requests.id == id).one()
     except exc.NoResultFound:
-        return 404
+        return "Invalid ID", 404
     if object.status == Status.done:
         number = 0
         urls = []
@@ -99,7 +99,7 @@ def download_pictures(id):
                 urls.append(f"Unable to download {url}")
         return jsonify({"files": urls}), 200
     else:
-        return 403
+        return "Request in progress, try later", 403
 
 
 @app.route("/download/text/<id>", methods=["GET"])
@@ -109,14 +109,14 @@ def download_text(id):
         object = session.query(Requests) \
             .filter(Requests.id == id).one()
     except exc.NoResultFound:
-        return 404
+        return "Invalid ID", 404
     if object.status == Status.done:
         name = f"./Text/{object.id}.txt"
         with open(name, "wb") as file:
             file.write(object.website_text)
         return jsonify({"file": name}), 200
     else:
-        return 403
+        return "Request in progress, try later", 403
 
 
 @app.route("/get/images/", methods=["POST"])
@@ -126,7 +126,7 @@ def create_pictures_request():
         get_pictures(url, id)
         return jsonify({"id": id}), 201
     else:
-        return 400
+        return "Invalid url", 400
 
 
 @app.route("/get/text/", methods=["POST"])
@@ -136,7 +136,7 @@ def create_text_request():
         get_text(url, id)
         return jsonify({"id": id}), 201
     else:
-        return 400
+        return "Invalid url", 400
 
 
 @celery.task

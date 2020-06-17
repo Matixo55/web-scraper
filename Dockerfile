@@ -5,13 +5,11 @@ RUN apt-get update -y
 
 COPY ./requirements.txt /usr/src/app/requirements.txt
 
-WORKDIR /usr/src/app
+WORKDIR /usr/src/app/
 
 ENV PATH="/usr/src/app:/usr/local/lib/python3.8:${PATH}"
 
 RUN pip install --upgrade pip
 RUN pip3 install -r requirements.txt
-
-COPY ./app/ ./usr/src/app/
 
 CMD ["python3", "-m", "flask", "run", "--host=0.0.0.0", "--port=5000"]

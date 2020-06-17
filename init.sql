@@ -6,5 +6,5 @@ id INT NOT NULL DEFAULT NEXTVAL('id_seq'),
 url TEXT NOT NULL,
 status TEXT,
 website_text TEXT,
-pictures TEXT[]
+images TEXT[]
 );

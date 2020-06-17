@@ -2,14 +2,12 @@ version: '3.8'
 services:  
  flask:
     container_name: flask_app
-    build: ./
+    build:
+      context: ./
+      dockerfile: Dockerfile
     restart: always
     volumes:
-      - ./app/:/usr/src/app/
-      # First part - where pictures will be saved
-      - ./app/Images:/usr/src/app/Images
-      - # First part - where text will be saved
-      - ./app/Text:/usr/src/app/Text
+      - ./app:/usr/src/app
     ports:
       - 5000:5000
     depends_on:
@@ -17,12 +15,16 @@ services:
 
  tests:
    container_name: tests
-   build: ./
+   build:
+     context: ./
+     dockerfile: Pytest_Dockerfile
    volumes:
-     - ./app/:/usr/src/app/
+     - ./tests/:/usr/src/tests/
+     - ./app/Images:/usr/src/app/Images
+     - ./app/Text:/usr/src/app/Text
    depends_on:
      - flask
-   command: python -m pytest /usr/src/app/tests.py
+     - db
 
  db:
   image: postgres:latest

@@ -29,7 +29,7 @@ def create_request_object():
     url = body["url"]
     if is_url_valid(url):
         sess = Session()
-        __request = Requests(url=url, status=Status.preparing, website_text="", pictures=[])
+        __request = Requests(url=url, status=Status.preparing, website_text="", images=[])
         sess.add(__request)
         sess.flush()
         print(__request.id)
@@ -40,11 +40,11 @@ def create_request_object():
         return url, None, False
 
 
-def finish_pictures_request(urls, target_id):
+def finish_images_request(urls, target_id):
     session = Session()
     session.query(Requests) \
         .filter(Requests.id == target_id) \
-        .update({Requests.pictures: urls, Requests.status: Status.done})
+        .update({Requests.images: urls, Requests.status: Status.done})
     session.commit()
 
 
@@ -67,23 +67,32 @@ def is_url_valid(url):
     return re.match(regex, url) is not None
 
 
+def validate_id(id):
+    if not id.isnumeric():
+        return None, False
+    session = Session()
+    try:
+        object = session.query(Requests) \
+            .filter(Requests.id == id).one()
+        return object, True
+    except exc.NoResultFound:
+        return None, False
+
+
 @app.route("/", methods=["GET"])
 def menu():
     return "<h1>Server is online</h1>", 200
 
 
 @app.route("/download/images/<id>", methods=["GET"])
-def download_pictures(id):
-    session = Session()
-    try:
-        object = session.query(Requests) \
-            .filter(Requests.id == id).one()
-    except exc.NoResultFound:
+def download_images(id):
+    object, valid = validate_id(id)
+    if not valid:
         return "Invalid ID", 404
     if object.status == Status.done:
         number = 0
         urls = []
-        for url in object.pictures:
+        for url in object.images:
             try:
                 response = req.get(url)
                 extension = url.split(".")[-1]
@@ -104,15 +113,12 @@ def download_pictures(id):
 
 @app.route("/download/text/<id>", methods=["GET"])
 def download_text(id):
-    session = Session()
-    try:
-        object = session.query(Requests) \
-            .filter(Requests.id == id).one()
-    except exc.NoResultFound:
+    object, valid = validate_id(id)
+    if not valid:
         return "Invalid ID", 404
     if object.status == Status.done:
         name = f"./Text/{object.id}.txt"
-        with open(name, "wb") as file:
+        with open(name, "w") as file:
             file.write(object.website_text)
         return jsonify({"file": name}), 200
     else:
@@ -120,10 +126,14 @@ def download_text(id):
 
 
 @app.route("/get/images/", methods=["POST"])
-def create_pictures_request():
+def create_image_request():
     url, id, accepted = create_request_object()
     if accepted:
-        get_pictures(url, id)
+        try:
+            page = req.get(url)
+        except req.exceptions.ConnectionError:
+            return "Invalid url or couldn't connect", 400
+        get_images(page, url, id)
         return jsonify({"id": id}), 201
     else:
         return "Invalid url", 400
@@ -133,26 +143,30 @@ def create_pictures_request():
 def create_text_request():
     url, id, accepted = create_request_object()
     if accepted:
-        get_text(url, id)
+        try:
+            page = req.get(url)
+        except req.exceptions.ConnectionError:
+            return "Invalid url or couldn't connect", 400
+        get_text(page, id)
         return jsonify({"id": id}), 201
     else:
         return "Invalid url", 400
 
 
 @celery.task
-def get_pictures(url, request_id):
-    html = req.get(url).content
+def get_images(page, url, request_id):
+    html = page.content
     soup = BeautifulSoup(html, 'html.parser')
     img_tags = soup.find_all('img')
     if url[-1] != "/":
         url += "/"
     urls = [url + img['src'] for img in img_tags]
-    finish_pictures_request(urls, request_id)
+    finish_images_request(urls, request_id)
 
 
 @celery.task
-def get_text(url, request_id):
-    html = req.get(url).content
+def get_text(page, request_id):
+    html = page.content
     soup = BeautifulSoup(html, 'html.parser')
     text = soup.get_text()
     finish_text_request(text, request_id)

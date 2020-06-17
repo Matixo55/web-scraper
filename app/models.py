@@ -17,8 +17,8 @@ class Requests(Base):
     url = Column(String(2083))
     status = Column(Enum(Status))
     website_text = Column(String)
-    pictures = Column(ARRAY(String))
+    images = Column(ARRAY(String))
 
     def __repr__(self):
-        return "<Requests(url='{}', status={}, website_text={}, pictures={})>" \
-            .format(self.url, self.status, self.website_text, self.pictures)
+        return "<Requests(url='{}', status={}, website_text={}, images={})>" \
+            .format(self.url, self.status, self.website_text, self.images)

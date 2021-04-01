@@ -5,20 +5,25 @@ from sqlalchemy import ARRAY, Enum, Column, Integer, String
 
 Base = declarative_base()
 
+list_model = """
+    <table style="width:100%">
+    <tr>
+    <th>ID</th>
+    <th>URL</th>
+    <th>Status</th>
+    </tr>
+    """
 
 class Status(enum.Enum):
     preparing = "in-progress"
     done = "done"
-
+    invalid = "invalid"
 
 class Requests(Base):
     __tablename__ = "requests"
-    id = Column(Integer, primary_key=True)
-    url = Column(String(2083))
-    status = Column(Enum(Status))
-    website_text = Column(String)
-    images = Column(ARRAY(String))
+    id = Column("id", Integer, primary_key=True)
+    url = Column("url", String(2083))
+    status = Column("status", Enum(Status))
+    website_text = Column("website_text", String)
+    images = Column("images", ARRAY(String))
 
-    def __repr__(self):
-        return "<Requests(url='{}', status={}, website_text={}, images={})>" \
-            .format(self.url, self.status, self.website_text, self.images)

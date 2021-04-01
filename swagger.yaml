@@ -103,7 +103,11 @@ paths:
           description: "Downloading to `app/Images/{requestID}.{extension}`"
           schema:
             $ref: "#/definitions/DownloadImages"
-
+  /list:
+    get:
+      tags:
+        - "get"
+      summary: "Show requested amount of entries from database"
 definitions:
   GetResources:
     type: "object"

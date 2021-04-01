@@ -35,9 +35,11 @@ def test_get_text():
         response = requests.post('http://flask_app:5000/get/text',
                                  data='{"url":"https://www.google.com"}',
                                  headers={'content-type': 'text/plain'})
+        print( response.text, flush = True)
         assert response.status_code == 201 and re.match('{"id":[0-9]+}\n', response.text)
         data = json.loads(response.text)
         text_id = data["id"]
+        print(text_id,flush=True)
 
 
 def test_get_images():
@@ -83,7 +85,7 @@ def test_download_text():
         os.remove(f"/usr/src/app/Text/{text_id}.txt")
 
 
-def test_download_iamges():
+def test_download_images():
     with app.app_context():
         # Non string ID
         response = requests.get(f'http://flask_app:5000/download/images/string')
@@ -94,13 +96,10 @@ def test_download_iamges():
         # Correct request
         response = requests.get(f'http://flask_app:5000/download/images/{images_id}')
         assert response.status_code == 200
-        # Check if images are saved
+        # Check if images are saved and delete them
         data = json.loads(response.text)
         for file in data["files"]:
             file = file[1:]
             assert os.path.isfile(f"/usr/src/app{file}")
-        # Delete files
-        for file in data["files"]:
-            file = file[1:]
             os.remove(f"/usr/src/app{file}")
 

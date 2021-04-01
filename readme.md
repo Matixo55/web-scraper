@@ -32,6 +32,8 @@ Test page to check if server is running.
 Download requested text to **app/Text** folder.
 ##### /download/images/\<ID>
 Download requested text to **app/Images** folder.
+##### /list
+Get selected number of requests from database
 ## Testing
 After building applications, automatic tests will run. You can check results in tests container.
 ## Info

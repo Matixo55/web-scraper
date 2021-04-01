@@ -6,5 +6,7 @@ id INT NOT NULL DEFAULT NEXTVAL('id_seq'),
 url TEXT NOT NULL,
 status TEXT,
 website_text TEXT,
-images TEXT[]
+images TEXT[],
+PRIMARY KEY (id)
 );
+CREATE UNIQUE INDEX index ON Requests(id);

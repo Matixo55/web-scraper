@@ -1,7 +1,5 @@
-FROM python:3.8.2
+FROM python:3
 
-RUN pip install --upgrade pip
-RUN apt-get update -y
 
 COPY ./pytest_requirements.txt /usr/src/tests/requirements.txt
 
@@ -9,8 +7,7 @@ WORKDIR /usr/src/tests
 
 ENV PATH="/usr/src/tests:/usr/local/lib/python3.8:${PATH}"
 
-RUN pip install --upgrade pip
-RUN pip3 install -r requirements.txt
+RUN pip3 install --no-cache-dir -r requirements.txt
 
 COPY ./tests/ ./usr/src/tests/
 

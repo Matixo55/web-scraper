@@ -126,7 +126,7 @@ def is_url_valid(url: str) -> bool:
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return re.match(regex, url) is not None
 
-def get_entry(id: int) -> object or None:
+def get_entry(id: int) -> Request or None:
 
     if not id.isnumeric():
         return None
@@ -139,7 +139,7 @@ def menu():
 
 
 @app.route("/download/images/<id>", methods=["GET"])
-def download_images(id: int):
+def download_images(id):
 
     if (request := get_entry(id)) is None:
         return "Invalid ID", 404
@@ -171,7 +171,7 @@ def download_images(id: int):
 
 
 @app.route("/download/text/<id>", methods=["GET"])
-def download_text(id: int):
+def download_text(id):
 
     if (request := get_entry(id)) is None:
         return "Invalid ID", 404

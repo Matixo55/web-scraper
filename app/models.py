@@ -19,7 +19,7 @@ class Status(enum.Enum):
     done = "done"
     invalid = "invalid"
 
-class Requests(Base):
+class Request(Base):
     __tablename__ = "requests"
     id = Column("id", Integer, primary_key=True)
     url = Column("url", String(2083))

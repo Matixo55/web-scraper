@@ -1,6 +1,7 @@
 import json
 import os
 import re
+import time
 
 import pytest
 import requests
@@ -12,6 +13,7 @@ app = Flask(__name__)
 
 
 def test_server():
+    time.sleep(3) # wait for database creation
     with app.app_context():
         # Is online
         response = requests.get('http://flask_app:5000/')

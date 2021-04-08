@@ -11,7 +11,8 @@ An Docker application consisting of Flask server and PostgreSQL database. Using 
 ```
 docker-compose up -d --build
 ```
-+ If modified database/tables, before rebuilding use:
++ WARNING - after first build test might fail (depends on users hardware). You can rerun them to ensure everything is correct.
++ If modified database/tables format or propeties, before rebuilding use:
 <br>(this will delete previous requests from database)
 ```
 docker-compose down -v
@@ -37,9 +38,8 @@ Get selected number of requests from database
 ## Testing
 After building applications, automatic tests will run. You can check results in tests container.
 ## Info
-Flask container might crash after first start (database will be created). It should automatically restart.
+Tests might fail after first start (database won't create on time). You can rerun them manually to ensure everything is working properly.
 <br>Having more than one instance running at the same time might cause problems.
-<br>This is an requirement task. It's described in **Task.pdf**
 ## Built With
 [Docker](https://www.docker.com/) - microservice host
 <br>[Flask](https://flask.palletsprojects.com/) - local server

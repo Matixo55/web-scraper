@@ -3,7 +3,6 @@ import os
 import re
 import time
 
-import pytest
 import requests
 from flask import Flask, current_app
 
@@ -70,10 +69,10 @@ def test_download_text():
     with app.app_context():
         # Non string ID
         response = requests.get(f'http://flask_app:5000/download/text/string')
-        assert response.status_code == 404 and response.text == "Invalid ID"
+        assert response.status_code == 404 and response.text == "Invalid or not existing ID"
         # ID doesn't exist
         response = requests.get(f'http://flask_app:5000/download/text/-1')
-        assert response.status_code == 404 and response.text == "Invalid ID"
+        assert response.status_code == 404 and response.text == "Invalid or not existing ID"
         # Correct request
         response = requests.get(f'http://flask_app:5000/download/text/{text_id}')
         assert response.status_code == 200 and f'"file":"./Text/{text_id}.txt"' in response.text
@@ -91,10 +90,10 @@ def test_download_images():
     with app.app_context():
         # Non string ID
         response = requests.get(f'http://flask_app:5000/download/images/string')
-        assert response.status_code == 404 and response.text == "Invalid ID"
+        assert response.status_code == 404 and response.text == "Invalid or not existing ID"
         # ID doesn't exist
         response = requests.get(f'http://flask_app:5000/download/images/-1')
-        assert response.status_code == 404 and response.text == "Invalid ID"
+        assert response.status_code == 404 and response.text == "Invalid or not existing ID"
         # Correct request
         response = requests.get(f'http://flask_app:5000/download/images/{images_id}')
         assert response.status_code == 200

@@ -14,10 +14,12 @@ list_model = """
     </tr>
     """
 
+
 class Status(enum.Enum):
     preparing = "in-progress"
     done = "done"
     invalid = "invalid"
+
 
 class Request(Base):
     __tablename__ = "requests"
@@ -26,4 +28,3 @@ class Request(Base):
     status = Column("status", Enum(Status))
     website_text = Column("website_text", String)
     images = Column("images", ARRAY(String))
-

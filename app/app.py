@@ -12,7 +12,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, exc
 
 DATABASE_URI = importlib.import_module(".", "settings").DATABASE_URI
-flask_debug = importlib.import_module(".", "settings").enable_flask_debug
+FLASK_DEBUG = importlib.import_module(".", "settings").enable_flask_debug
 MAX_PAGE_SIZE = importlib.import_module(".", "settings").MAX_PAGE_SIZE
 Request = importlib.import_module(".", "models").Request
 RESPONSE = importlib.import_module(".", "models").list_model
@@ -20,7 +20,7 @@ Status = importlib.import_module(".", "models").Status
 
 app = Flask(__name__)
 app.config['CELERY_RESULT_BACKEND'] = 'redis://localhost:6379/0'
-app.config['DEBUG'] = flask_debug
+app.config['DEBUG'] = FLASK_DEBUG
 celery = Celery(app.name, broker='redis://localhost:6379/0')
 
 engine = create_engine(DATABASE_URI)
@@ -56,11 +56,15 @@ class DataAccessor:
             self._session.close()
             return request_id
 
-    def finish_images_request(self, urls: List[str], request_id: int) -> None:
+    def finish_request(self, request_id: int, text: str, urls: List[str]) -> None:
         try:
             self._session.query(Request) \
                 .filter(Request.id == request_id) \
-                .update({Request.images: urls, Request.status: Status.done})
+                .update({
+                    Request.website_text: text,
+                    Request.images: urls,
+                    Request.status: Status.done
+                })
             self._session.commit()
         except BaseException as ex:
             self._session.rollback()
@@ -68,19 +72,7 @@ class DataAccessor:
         finally:
             self._session.close()
 
-    def finish_text_request(self, text: str, request_id: int) -> None:
-        try:
-            self._session.query(Request) \
-                .filter(Request.id == request_id) \
-                .update({Request.website_text: text, Request.status: Status.done})
-            self._session.commit()
-        except BaseException as ex:
-            self._session.rollback()
-            raise ex
-        finally:
-            self._session.close()
-
-    def find_by_id(self, request_id: int) -> Request:
+    def find(self, request_id: int) -> Request:
         try:
             result = self._session.query(Request) \
                 .filter(Request.id == request_id).one()
@@ -172,7 +164,7 @@ def is_url_valid(url: str) -> bool:
 def get_entry(request_id: str) -> Request:
     if not request_id.isnumeric():
         return
-    return accessor.find_by_id(int(request_id))
+    return accessor.find(int(request_id))
 
 
 @app.route("/", methods=["GET"])
@@ -274,7 +266,7 @@ def get_images(page: "requests.models.Response", url: str, request_id: int):
     if url[-1] != "/":
         url += "/"
     urls = [url + image['src'] for image in images]
-    accessor.finish_images_request(urls, request_id)
+    accessor.finish_request(request_id, "", urls)
 
 
 @celery.task
@@ -282,7 +274,7 @@ def get_text(page: "requests.models.Response", request_id: int):
     html = page.content
     soup = BeautifulSoup(html, 'html.parser')
     text = soup.get_text()
-    accessor.finish_text_request(text, request_id)
+    accessor.finish_request(request_id, text, [])
 
 
 if __name__ == "__main__":

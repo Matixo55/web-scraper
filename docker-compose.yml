@@ -28,6 +28,7 @@ services:
  db:
   image: postgres:13-alpine
   container_name: postgreSQL
+  restart: always
   volumes:
    - postgres_data:/var/lib/postgresql/data/
    - ./init.sql:/docker-entrypoint-initdb.d/init.sql

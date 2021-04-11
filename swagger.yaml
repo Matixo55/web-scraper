@@ -130,10 +130,8 @@ paths:
       responses:
         "202":
           description: "Displays list of entries based on given data"
-        "404":
-          description: "Limit or page is not in correct format"
         "400":
-          description: "Limit or page doesn't meet requirements or limit"
+          description: "Limit or page is not in correct"
 
 definitions:
   GetResources:

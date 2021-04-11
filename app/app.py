@@ -80,20 +80,20 @@ class DataAccessor:
         finally:
             self._session.close()
 
-    def find_by_id(self, request_id: int) -> Request or None:
+    def find_by_id(self, request_id: int) -> Request:
         try:
             result = self._session.query(Request) \
                 .filter(Request.id == request_id).one()
             return result
         except exc.NoResultFound:
-            return None
+            return
 
-    def get_entries(self, limit: int, page: int) -> List[Request] or None:
+    def get_entries(self, limit: int, page: int) -> List[Request]:
         try:
             query = self._session.query(Request).limit(limit).offset((page - 1) * limit).all()
             query.sort(key=lambda entry: entry.id)
         except BaseException as ex:
-            query = None
+            query = []
             raise ex
         finally:
             self._session.close()
@@ -104,60 +104,48 @@ accessor = DataAccessor(Session(engine))
 
 
 def create_response(query: List[Request]) -> str:
-
     response = RESPONSE
     style = '"text-align: center; vertical-align: middle;"'
-    status_converter = {
-        Status.done: "Done",
-        Status.preparing: "In progress",
-        Status.invalid: "Error while processing"
-                        }
+
     for result in query:
         response += '<tr>' \
                     f'<td style={style}>{result.id}</td>' \
                     f'<td style={style}>{result.url}</td>' \
-                    f'<td style={style}>{status_converter[result.status]}</td>' \
+                    f'<td style={style}>{result.status.name}</td>' \
                     '</tr>'
-    response += "</table>"
 
+    response += "</table>"
     return response
 
 
-def create_request_object() -> (str, int, bool):
+def create_request_object() -> [str, int, bool]:
     body = flask_request.get_json(force=True)
     url = body["url"]
+    request = Request(url=url, status=Status.preparing, website_text="", images=[])
 
     if is_url_valid(url):
-        request = Request(url=url, status=Status.preparing, website_text="", images=[])
         if (request_id := accessor.create_request(request)) != -1:
             return url, request_id, True
-        else:
-            return url, 0, False
 
-    else:
-        return url, 0, False
+    return url, 0, False
 
 
 def download_images(request_id: int, url_list: List[str]) -> List[str]:
     urls = []
-    number = 0
+    extensions = ["png", "jpg", "jpeg", "raw", "gif"]
 
-    for url in url_list:
+    for number, url in enumerate(url_list, start=1):
         try:
             response = req.get(url)
             extension = url.split(".")[-1]
-            extensions = ["png", "jpg", "jpeg", "raw", "gif"]
             if extension.lower() not in extensions:
                 extension = "png"
             path = f"./Images/{request_id}-{number}.{extension}"
             with open(path, "wb") as file:
                 file.write(response.content)
-            number += 1
             urls.append(path)
-
         except req.exceptions.ConnectionError:
             urls.append(f"Unable to download {url}")
-
     return urls
 
 
@@ -167,10 +155,7 @@ def exists_directory(directory: str) -> bool:
             os.mkdir(directory)
         except OSError:
             return False
-        finally:
-            return True
-    else:
-        return True
+    return True
 
 
 def is_url_valid(url: str) -> bool:
@@ -184,10 +169,9 @@ def is_url_valid(url: str) -> bool:
     return re.match(regex, url) is not None
 
 
-def get_entry(request_id: str) -> Request or None:
+def get_entry(request_id: str) -> Request:
     if not request_id.isnumeric():
-        return None
-
+        return
     return accessor.find_by_id(int(request_id))
 
 
@@ -200,15 +184,12 @@ def menu():
 def start_image_download(request_id):
     if (request := get_entry(request_id)) is None:
         return "Invalid or not existing ID", 404
-
     elif request.status == Status.done:
-
         if not exists_directory("./Images"):
             return "Unable to create ./Images directory", 450
 
         urls = download_images(request.id, request.images)
         return jsonify({"files": urls}), 200
-
     else:
         return "Request in progress, try later", 403
 
@@ -219,15 +200,13 @@ def download_text(request_id):
         return "Invalid or not existing ID", 404
 
     elif request.status == Status.done:
+        name = f"./Text/{request.id}.txt"
 
         if not exists_directory("./Text"):
             return "Unable to create ./Text directory", 450
-
-        name = f"./Text/{request.id}.txt"
         with open(name, "w") as file:
             file.write(request.website_text)
         return jsonify({"file": name}), 200
-
     else:
         return "Request in progress, try later", 403
 
@@ -261,53 +240,40 @@ def create_text_request():
             return "Invalid url or couldn't connect", 400
         get_text(page, request_id)
         return jsonify({"id": request_id}), 201
-
     else:
         return "Invalid url", 400
 
 
 @app.route("/list/", methods=["GET", "POST"])
 def show_entries():
-
     if flask_request.method == "GET":
         return render_template('menu.html')
 
     elif flask_request.method == "POST":
         page = flask_request.form["page"]
         limit = flask_request.form["limit"]
+
         if page is None or limit is None:
             return render_template('menu.html')
-
-        if not page.isnumeric():
-            return f"Bad Request - invalid page: {page} is not a correct number", 404
-        if not limit.isnumeric():
-            return f"Bad Request - invalid limit: {limit} is not a correct number", 404
-
-        page = int(page)
-        limit = int(limit)
-        if page <= 0:
-            return "Bad Request - invalid page: <= 0", 400
-        if limit <= 0:
-            return "Bad Request - invalid limit: <= 0", 400
+        if not page.isnumeric() or (page := int(page)) <= 0:
+            return f"Bad Request - invalid page number", 400
+        if not limit.isnumeric() or (limit := int(limit)) < 0:
+            return f"Bad Request - invalid entries amount", 400
         if limit > MAX_PAGE_SIZE:
             return f"Bad Request - limit bigger than {MAX_PAGE_SIZE}", 400
 
         query = accessor.get_entries(limit, page)
-
-        if query is not None:
-            return create_response(query)
-        else:
-            return RESPONSE
+        return create_response(query)
 
 
 @celery.task
 def get_images(page: "requests.models.Response", url: str, request_id: int):
     html = page.content
     soup = BeautifulSoup(html, 'html.parser')
-    img_tags = soup.find_all('img')
+    images = soup.find_all('img')
     if url[-1] != "/":
         url += "/"
-    urls = [url + img['src'] for img in img_tags]
+    urls = [url + image['src'] for image in images]
     accessor.finish_images_request(urls, request_id)
 
 

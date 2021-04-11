@@ -16,9 +16,9 @@ list_model = """
 
 
 class Status(enum.Enum):
-    preparing = "in-progress"
-    done = "done"
-    invalid = "invalid"
+    preparing = "In progress"
+    done = "Done"
+    invalid = "Couldn't connect"
 
 
 class Request(Base):

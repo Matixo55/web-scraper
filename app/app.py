@@ -103,6 +103,26 @@ class DataAccessor:
 accessor = DataAccessor(Session(engine))
 
 
+def create_response(query: List[Request]) -> str:
+
+    response = RESPONSE
+    style = '"text-align: center; vertical-align: middle;"'
+    status_converter = {
+        Status.done: "Done",
+        Status.preparing: "In progress",
+        Status.invalid: "Error while processing"
+                        }
+    for result in query:
+        response += '<tr>' \
+                    f'<td style={style}>{result.id}</td>' \
+                    f'<td style={style}>{result.url}</td>' \
+                    f'<td style={style}>{status_converter[result.status]}</td>' \
+                    '</tr>'
+    response += "</table>"
+
+    return response
+
+
 def create_request_object() -> (str, int, bool):
     body = flask_request.get_json(force=True)
     url = body["url"]
@@ -116,6 +136,39 @@ def create_request_object() -> (str, int, bool):
 
     else:
         return url, 0, False
+
+
+def download_images(request_id: int, url_list: List[str]) -> List[str]:
+    urls = []
+    number = 0
+
+    for url in url_list:
+        try:
+            response = req.get(url)
+            extension = url.split(".")[-1]
+            extensions = ["png", "jpg", "jpeg", "raw", "gif"]
+            if extension.lower() not in extensions:
+                extension = "png"
+            path = f"./Images/{request_id}-{number}.{extension}"
+            with open(path, "wb") as file:
+                file.write(response.content)
+            number += 1
+            urls.append(path)
+
+        except req.exceptions.ConnectionError:
+            urls.append(f"Unable to download {url}")
+
+    return urls
+
+
+def exists_directory(directory: str) -> bool:
+    if not os.path.isdir(directory):
+        try:
+            os.mkdir(directory)
+        except OSError:
+            return False
+        finally:
+            return True
 
 
 def is_url_valid(url: str) -> bool:
@@ -142,36 +195,16 @@ def menu():
 
 
 @app.route("/download/images/<request_id>", methods=["GET"])
-def download_images(request_id):
+def start_image_download(request_id):
     if (request := get_entry(request_id)) is None:
         return "Invalid or not existing ID", 404
 
     elif request.status == Status.done:
-        number = 0
-        urls = []
 
-        if not os.path.isdir('./Images'):
-            try:
-                os.mkdir("./Images")
-            except OSError:
-                return "Unable to create ./Images directory", 450
+        if not exists_directory("./Images"):
+            return "Unable to create ./Images directory", 450
 
-        for url in request.images:
-            try:
-                response = req.get(url)
-                extension = url.split(".")[-1]
-                extensions = ["png", "jpg", "jpeg", "raw", "gif"]
-                if extension.lower() not in extensions:
-                    extension = "png"
-                name = f"./Images/{request.id}-{number}.{extension}"
-                with open(name, "wb") as file:
-                    file.write(response.content)
-                number += 1
-                urls.append(name)
-
-            except req.exceptions.ConnectionError:
-                urls.append(f"Unable to download {url}")
-
+        urls = download_images(request.id, request.images)
         return jsonify({"files": urls}), 200
 
     else:
@@ -185,11 +218,8 @@ def download_text(request_id):
 
     elif request.status == Status.done:
 
-        if not os.path.isdir('./Text'):
-            try:
-                os.mkdir("./Text")
-            except OSError:
-                return "Unable to create ./Text directory", 450
+        if not exists_directory("./Text"):
+            return "Unable to create ./Text directory", 450
 
         name = f"./Text/{request.id}.txt"
         with open(name, "w") as file:
@@ -236,7 +266,6 @@ def create_text_request():
 
 @app.route("/list/", methods=["GET", "POST"])
 def show_entries():
-    response = RESPONSE
 
     if flask_request.method == "GET":
         return render_template('menu.html')
@@ -244,7 +273,6 @@ def show_entries():
     elif flask_request.method == "POST":
         page = flask_request.form["page"]
         limit = flask_request.form["limit"]
-        style = '"text-align: center; vertical-align: middle;"'
         if page is None or limit is None:
             return render_template('menu.html')
 
@@ -262,19 +290,12 @@ def show_entries():
         if limit > MAX_PAGE_SIZE:
             return f"Bad Request - limit bigger than {MAX_PAGE_SIZE}", 400
 
-        status_converter = {Status.done: "Done", Status.preparing: "In progress",
-                            Status.invalid: "Error while processing"}
         query = accessor.get_entries(limit, page)
 
         if query is not None:
-            for result in query:
-                response += '<tr>' \
-                            f'<td style={style}>{result.id}</td>' \
-                            f'<td style={style}>{result.url}</td>' \
-                            f'<td style={style}>{status_converter[result.status]}</td>' \
-                            '</tr>'
-            response += "</table>"
-        return response
+            return create_response(query)
+        else:
+            return RESPONSE
 
 
 @celery.task

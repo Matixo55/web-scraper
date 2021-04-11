@@ -1,5 +1,7 @@
-import re
 import importlib
+import os
+import re
+from typing import List
 
 import requests as req
 from bs4 import BeautifulSoup
@@ -7,8 +9,7 @@ from celery import Celery
 from flask import Flask, jsonify, render_template
 from flask import request as flask_request
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, sessionmaker, exc
-from typing import List
+from sqlalchemy.orm import Session, exc
 
 DATABASE_URI = importlib.import_module(".", "settings").DATABASE_URI
 flask_debug = importlib.import_module(".", "settings").enable_flask_debug
@@ -149,6 +150,12 @@ def download_images(request_id):
         number = 0
         urls = []
 
+        if not os.path.isdir('./Images'):
+            try:
+                os.mkdir("./Images")
+            except OSError:
+                return "Unable to create ./Images directory", 450
+
         for url in request.images:
             try:
                 response = req.get(url)
@@ -177,6 +184,13 @@ def download_text(request_id):
         return "Invalid or not existing ID", 404
 
     elif request.status == Status.done:
+
+        if not os.path.isdir('./Text'):
+            try:
+                os.mkdir("./Text")
+            except OSError:
+                return "Unable to create ./Text directory", 450
+
         name = f"./Text/{request.id}.txt"
         with open(name, "w") as file:
             file.write(request.website_text)

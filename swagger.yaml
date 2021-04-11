@@ -78,6 +78,8 @@ paths:
           description: "Request is in progress, try later"
         "404":
           description: "Invalid requestID"
+        "450":
+          description: "Unable to create ./Text directory"
         "200":
           description: "Downloading to `app/Text/{requestID}.txt`"
           schema:
@@ -99,6 +101,8 @@ paths:
           description: "Request is in progress, try later"
         "404":
           description: "Invalid requestID"
+        "450":
+          description: "Unable to create ./Images directory"
         "200":
           description: "Downloading to `app/Images/{requestID}.{extension}`"
           schema:
@@ -106,8 +110,31 @@ paths:
   /list:
     get:
       tags:
-        - "get"
+      - "get"
       summary: "Show requested amount of entries from database"
+      consumes:
+      - "multipart/form-data"
+      parameters:
+      - name: "limit"
+        in: "formData"
+        description: "Number of entries per page"
+        required: true
+        type: "integer"
+        format: "int64"
+      - name: "page"
+        in: "formData"
+        description: "Number of page to show"
+        required: true
+        type: "integer"
+        format: "int64"
+      responses:
+        "202":
+          description: "Displays list of entries based on given data"
+        "404":
+          description: "Limit or page is not in correct format"
+        "400":
+          description: "Limit or page doesn't meet requirements or limit"
+
 definitions:
   GetResources:
     type: "object"

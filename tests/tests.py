@@ -12,9 +12,9 @@ app = Flask(__name__)
 
 
 def test_server():
-    time.sleep(3) # wait for database creation
+    time.sleep(3)  # wait for database creation
     with app.app_context():
-        # Is online
+        # Is server online
         response = requests.get('http://flask_app:5000/')
         assert response.status_code == 200
 
@@ -36,11 +36,11 @@ def test_get_text():
         response = requests.post('http://flask_app:5000/get/text',
                                  data='{"url":"https://www.google.com"}',
                                  headers={'content-type': 'text/plain'})
-        print( response.text, flush = True)
+        print(response.text, flush=True)
         assert response.status_code == 201 and re.match('{"id":[0-9]+}\n', response.text)
         data = json.loads(response.text)
         text_id = data["id"]
-        print(text_id,flush=True)
+        print(text_id, flush=True)
 
 
 def test_get_images():
@@ -103,4 +103,3 @@ def test_download_images():
             file = file[1:]
             assert os.path.isfile(f"/usr/src/app{file}")
             os.remove(f"/usr/src/app{file}")
-

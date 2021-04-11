@@ -24,7 +24,6 @@ services:
      - ./app/Text:/usr/src/app/Text
    depends_on:
      - flask
-     - db
 
  db:
   image: postgres:13-alpine

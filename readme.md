@@ -1,9 +1,9 @@
 # Text and images downloader
-An Docker application consisting of Flask server and PostgreSQL database. Using REST API create requests for text or images from website. Includes automatic tests.
+A Docker application consisting of Flask server and PostgreSQL database. Using REST API create requests for text or images from website. Includes automatic tests.
 ## Prerequisites
 + Docker [(What is Docker)](https://opensource.com/resources/what-docker)
 + All other requirements are automatically installed when creating Docker image.
-<br>You can check pip requirements in **requirements.txt** and **pytest.requirements.txt** files.
+<br>You can check pip requirements in **requirements.txt** and **pytest_requirements.txt** files.
 ## Installing
 + Download and install Docker [(Download)](https://docs.docker.com/get-docker/)
 + Navigate in console to downloaded folder
@@ -11,8 +11,8 @@ An Docker application consisting of Flask server and PostgreSQL database. Using 
 ```
 docker-compose up -d --build
 ```
-+ WARNING - after first build test might fail (depends on users hardware). You can rerun them to ensure everything is correct.
-+ If modified database/tables format or propeties, before rebuilding use:
++ WARNING - after first build test might fail (depends on users' hardware). You can rerun them to ensure everything is correct.
++ If modified database/tables format or properties, before rebuilding use:
 <br>(this will delete previous requests from database)
 ```
 docker-compose down -v

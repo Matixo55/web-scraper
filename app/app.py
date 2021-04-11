@@ -169,6 +169,8 @@ def exists_directory(directory: str) -> bool:
             return False
         finally:
             return True
+    else:
+        return True
 
 
 def is_url_valid(url: str) -> bool:

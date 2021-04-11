@@ -1,4 +1,4 @@
-FROM python:3
+FROM python:3.9.4-slim
 
 COPY ./requirements.txt /usr/src/app/requirements.txt
 

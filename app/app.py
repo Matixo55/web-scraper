@@ -9,7 +9,7 @@ from celery import Celery
 from flask import Flask, jsonify, render_template
 from flask import request as flask_request
 from sqlalchemy import create_engine
-from sqlalchemy.orm import Session, exc
+from sqlalchemy.orm import exc, Session
 
 DATABASE_URI = importlib.import_module(".", "settings").DATABASE_URI
 FLASK_DEBUG = importlib.import_module(".", "settings").enable_flask_debug
@@ -153,9 +153,9 @@ def exists_directory(directory: str) -> bool:
 def is_url_valid(url: str) -> bool:
     regex = re.compile(
         r'^(?:http|ftp)s?://'  # http:// or https://
-        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain...
-        r'localhost|'  # localhost...
-        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ...or ip
+        r'(?:(?:[A-Z0-9](?:[A-Z0-9-]{0,61}[A-Z0-9])?\.)+(?:[A-Z]{2,6}\.?|[A-Z0-9-]{2,}\.?)|'  # domain
+        r'localhost|'  # localhost
+        r'\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3})'  # ip
         r'(?::\d+)?'  # optional port
         r'(?:/?|[/?]\S+)$', re.IGNORECASE)
     return re.match(regex, url) is not None
@@ -176,12 +176,13 @@ def menu():
 def start_image_download(request_id):
     if (request := get_entry(request_id)) is None:
         return "Invalid or not existing ID", 404
+
     elif request.status == Status.done:
         if not exists_directory("./Images"):
             return "Unable to create ./Images directory", 450
-
         urls = download_images(request.id, request.images)
         return jsonify({"files": urls}), 200
+
     else:
         return "Request in progress, try later", 403
 
@@ -193,12 +194,12 @@ def download_text(request_id):
 
     elif request.status == Status.done:
         name = f"./Text/{request.id}.txt"
-
         if not exists_directory("./Text"):
             return "Unable to create ./Text directory", 450
         with open(name, "w") as file:
             file.write(request.website_text)
         return jsonify({"file": name}), 200
+
     else:
         return "Request in progress, try later", 403
 
@@ -232,6 +233,7 @@ def create_text_request():
             return "Invalid url or couldn't connect", 400
         get_text(page, request_id)
         return jsonify({"id": request_id}), 201
+
     else:
         return "Invalid url", 400
 

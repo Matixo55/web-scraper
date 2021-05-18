@@ -1,4 +1,5 @@
 # Text and images downloader
+### Description
 A Docker application consisting of Flask server and PostgreSQL database. Using REST API create requests for text or images from website. Includes automatic tests.
 ## Prerequisites
 + Docker [(What is Docker)](https://opensource.com/resources/what-docker)
